@@ -29,7 +29,7 @@ import os
 import sys
 import subprocess
 import re
-import pypiper
+import pyPiper
 #from envbash import load_envbash
 #load_envbash('/scratch/lab_bergthaler/pipelines/virSeqVariantCaller/moduleLoad.sh')
 
@@ -77,21 +77,20 @@ parser = ArgumentParser(description='Pypiper arguments VirSeq.')
 #parser = pypiper.add_pypiper_args(parser, all_args=True)
 
 parser.add_argument('-y', '--sample_yaml', dest='config_file', help='yaml config file with sample attributes')
-parser.add_argument('-dp', '--data_path', dest='data_path', help='path to sequencing data file')
-parser.add_argument('-n', '--sample_name', dest='sample_name', help='name of the sample')
-parser.add_argument('-r', dest='results_folder', help='path to folder to store results in')
-parser.add_argument('-fc', dest='flowcell', help='the flow cell id')
+parser.add_argument('-dp', '--data_path', dest='data_path', default='./data', help='path to sequencing data file')
+parser.add_argument('-n', '--sample_name', dest='sample_name', default='sample_name', help='name of the sample')
+parser.add_argument('-r', dest='results_folder', default='./results',  help='path to folder to store results in')
+parser.add_argument('-fc', dest='flowcell', default='flowcell', help='the flow cell id')
 
 args = parser.parse_args()
 
 ##################
 ### Initialize ###
 ##################
-
 outfolder = os.path.abspath(os.path.join(args.results_folder,args.sample_name))
 
 
-pm = pypiper.PipelineManager(name = 'VirSeq', outfolder = outfolder, args = args) # initialize pipeline manager instance
+pm = pyPiper.PipelineManager(name = 'VirSeq', outfolder = outfolder, args = args) # initialize pipeline manager instance
 
 ################
 ### To Fastq ###
@@ -244,7 +243,7 @@ pm.run(cmd, pathVirusReheaderBAM)
 
 indexVirusReheaderBAM = args.sample_name + '_sorted_viral_rh.bam.bai'
 pathIndexVirusReheaderBAM = os.path.join(outfolder, indexVirusReheaderBAM)
-cmd = "samtools index " + pathVirusReheaderBAM  
+cmd = "samtools index " + pathVirusReheaderBAM
 pm.timestamp(cmd)
 pm.run(cmd, pathIndexVirusReheaderBAM)
 
@@ -277,7 +276,7 @@ pm.run(cmd, pathVirusTrimmSortBAM)
 
 indexVirusTrimmSortBAM = args.sample_name + '_sorted_viral_rh_trim.bam.bai'
 pathIndexVirusTrimmSortBAM = os.path.join(outfolder, indexVirusTrimmSortBAM)
-cmd = "samtools index " + pathVirusTrimmSortBAM 
+cmd = "samtools index " + pathVirusTrimmSortBAM
 pm.timestamp(cmd)
 pm.run(cmd, pathIndexVirusTrimmSortBAM)
 
@@ -372,18 +371,18 @@ cmd= "samtools mpileup -d 0 -uf " + refSARSCoV2 + " " +  pathClipVirus + " | bcf
 pm.timestamp(cmd)
 pm.run(cmd, pathFQConsensus)
 
-#bcftools mpileup -d 50000 -f refSARSCoV2 -L 10000 -q 20 -Q 10 pathVirusTrimmSortBAM | bcftools call -c | bcftools consensus -f refSARSCoV2 > 
+#bcftools mpileup -d 50000 -f refSARSCoV2 -L 10000 -q 20 -Q 10 pathVirusTrimmSortBAM | bcftools call -c | bcftools consensus -f refSARSCoV2 >
 #bcftools mpileup -d 50000 -f /scratch/lab_bergthaler/genomes/SARS-CoV-2/RefSeq_sequence_Wuhan-Hu1.fa -L 10000 -q 20 -Q 10 ../results_pipeline/CoV_023_S63673_S120/CoV_023_S63673_S120_sorted_viral_rh_trim.bam | bcftools call -c | bcftools consensus -f /scratch/lab_bergthaler/genomes/SARS-CoV-2/RefSeq_sequence_Wuhan-Hu1.fa > test.fasta
 #bcftools mpileup -d 50000 -f /scratch/lab_bergthaler/genomes/SARS-CoV-2/RefSeq_sequence_Wuhan-Hu1.fa -L 10000 -q 20 -Q 10 ../results_pipeline/CoV_023_S63673_S120/CoV_023_S63673_S120_sorted_viral_rh_trim.bam | bcftools call -c --ploidy 1 -O z -o test.vcf.gz
 #bcftools consensus -e "QUAL < 50" -I -f /scratch/lab_bergthaler/genomes/SARS-CoV-2/RefSeq_sequence_Wuhan-Hu1.fa -o test.cons.fasta test.vcf.gz
 
-#samtools mpileup -uf -d 0 /scratch/lab_bergthaler/genomes/SARS-CoV-2/RefSeq_sequence_Wuhan-Hu1.fa 
+#samtools mpileup -uf -d 0 /scratch/lab_bergthaler/genomes/SARS-CoV-2/RefSeq_sequence_Wuhan-Hu1.fa
 
 #https://www.biostars.org/p/367626/
 fastaConsensus = args.sample_name + '_cons.fasta'
 pathFastaConsensus = os.path.join(outfolder, fastaConsensus)
 
-#[apopa@n001 statsFasta]$ tabix -f -p vcf test.vcf.gz 
+#[apopa@n001 statsFasta]$ tabix -f -p vcf test.vcf.gz
 #[apopa@n001 statsFasta]$ bcftools consensus -e "QUAL < 50" -I -f /scratch/lab_bergthaler/genomes/SARS-CoV-2/RefSeq_sequence_Wuhan-Hu1.fa -o test.cons.fasta test.vcf.gz
 
 cmd= SEQTK + " seq -aQ64 -q20 -n N " + pathFQConsensus + " > " +  pathFastaConsensus
@@ -451,9 +450,9 @@ pathLoFreqIdx = os.path.join(outfolder, loFreqIdx)
 #-m Skip reads with mapping qualirty smaller
 #-C Test only positions having at least this coverage
 #-a P-Value cutoff / significance level
-#cmd = LOFREQ + " call -f " +refSARSCoV2 +  " -q 20 -Q 20 -m 20 -C 75 -a 0.05 --call-indels -o " + pathLoFreqFile + " " + pathIndelQualFile 
-#cmd = LOFREQ + " call -f " +refSARSCoV2 +  " -q 0 -Q 15 -B -m 20 -C 75 -a 0.05 --call-indels -o " + pathLoFreqFile + " " + pathIndelQualFile 
-cmd = LOFREQ + " call -f " +refSARSCoV2 +  "  -C 75  --no-default-filter  --call-indels -o " + pathLoFreqFile + " " + pathIndelQualFile 
+#cmd = LOFREQ + " call -f " +refSARSCoV2 +  " -q 20 -Q 20 -m 20 -C 75 -a 0.05 --call-indels -o " + pathLoFreqFile + " " + pathIndelQualFile
+#cmd = LOFREQ + " call -f " +refSARSCoV2 +  " -q 0 -Q 15 -B -m 20 -C 75 -a 0.05 --call-indels -o " + pathLoFreqFile + " " + pathIndelQualFile
+cmd = LOFREQ + " call -f " +refSARSCoV2 +  "  -C 75  --no-default-filter  --call-indels -o " + pathLoFreqFile + " " + pathIndelQualFile
 pm.timestamp(cmd)
 pm.run(cmd, pathLoFreqFile)
 
@@ -486,7 +485,7 @@ loFreqRenIx = args.sample_name + "_samp.lofreq.bed.vcf.gz.tbi"
 pathLoFreqRenIx = os.path.join(outfolder, loFreqRenIx)
 
 cmd = "awk -v OFS=\"\t\" \'/^\\#\\#[^I]/ {print} /^\\#\\#INFO/ {sub(\"AF,Number=1\",\"AF,Number=A\",$0); print $0; sub(\"INFO\",\"FORMAT\",$0); print $0; print \"##FORMAT=<ID=PQ,Number=1,Type=Integer,Description=\\\"Phred-scaled variant call P value\\\">\" } /\\#CH/ {print $0,\"FORMAT\",\"\'"+ args.sample_name + "\'\"} !/^\\#/ {form=$8;  gsub(/=[^A-Z]+/,\":\",form); gsub(/;/,\":\",form); sub(/:$/,\"\",form); sub(/INDEL:/,\"\",form);  samp=$8; gsub(/[A-Z4]+=/,\"\",samp); gsub(/;/,\":\",samp); sub(/INDEL:/,\"\",samp); print $0,form\":PQ\",samp\":\"$6}\' " + pathLoFreqFilter + " > " + pathLoFreqRename
-#+" | bgzip -c >" +pathLoFreqRename 
+#+" | bgzip -c >" +pathLoFreqRename
 pm.timestamp(cmd)
 pm.run(cmd, pathLoFreqRename)
 cmd = "bgzip -f " + pathLoFreqRename
